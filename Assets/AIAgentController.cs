@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -862,6 +863,12 @@ public class AIAgentController : MonoBehaviour
             }
         }
 
+        if (TryBuildDetectedInfoFromLooseFields(generatedText, out var looseDetected))
+        {
+            detected = looseDetected;
+            return true;
+        }
+
         var lines = generatedText.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length == 0)
         {
@@ -876,6 +883,11 @@ public class AIAgentController : MonoBehaviour
         {
             var line = lines[i].Trim();
             if (string.IsNullOrEmpty(line))
+            {
+                continue;
+            }
+
+            if (IsParserNoiseLine(line))
             {
                 continue;
             }
@@ -925,6 +937,91 @@ public class AIAgentController : MonoBehaviour
         return true;
     }
 
+    private static bool TryBuildDetectedInfoFromLooseFields(string generatedText, out DetectedObjectInfo detected)
+    {
+        detected = default;
+
+        if (string.IsNullOrWhiteSpace(generatedText))
+        {
+            return false;
+        }
+
+        var objectNameRaw = string.Empty;
+        if (!TryExtractNamedField(generatedText, "objectName", out objectNameRaw) &&
+            !TryExtractNamedField(generatedText, "object", out objectNameRaw) &&
+            !TryExtractNamedField(generatedText, "name", out objectNameRaw))
+        {
+            return false;
+        }
+
+        var objectName = NormalizeDetectedObjectName(objectNameRaw);
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return false;
+        }
+
+        var confidenceRaw = "80%";
+        TryExtractNamedField(generatedText, "confidence", out confidenceRaw);
+
+        var descriptionRaw = string.Empty;
+        if (!TryExtractNamedField(generatedText, "shortDescription", out descriptionRaw))
+        {
+            TryExtractNamedField(generatedText, "description", out descriptionRaw);
+        }
+
+        detected = new DetectedObjectInfo(
+            objectName,
+            NormalizeConfidence(confidenceRaw),
+            SafeOrDefault(descriptionRaw, "Detected object from camera frame."));
+        return true;
+    }
+
+    private static bool TryExtractNamedField(string source, string fieldName, out string value)
+    {
+        value = string.Empty;
+        if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(fieldName))
+        {
+            return false;
+        }
+
+        var escapedField = Regex.Escape(fieldName);
+
+        var quotedPattern = "(?:^|[\\{\\s,])['\"]?" + escapedField + "['\"]?\\s*[:=]\\s*([\"'])(.*?)\\1";
+        var quotedMatch = Regex.Match(source, quotedPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        if (quotedMatch.Success && quotedMatch.Groups.Count > 2)
+        {
+            value = quotedMatch.Groups[2].Value.Trim();
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        var rawPattern = "(?:^|[\\{\\s,])['\"]?" + escapedField + "['\"]?\\s*[:=]\\s*([^,}\\]\\r\\n]+)";
+        var rawMatch = Regex.Match(source, rawPattern, RegexOptions.IgnoreCase);
+        if (rawMatch.Success && rawMatch.Groups.Count > 1)
+        {
+            value = rawMatch.Groups[1].Value.Trim();
+            return !string.IsNullOrWhiteSpace(value);
+        }
+
+        return false;
+    }
+
+    private static bool IsParserNoiseLine(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
+        {
+            return true;
+        }
+
+        var trimmed = line.Trim();
+        if (trimmed == "{" || trimmed == "}" || trimmed == "[" || trimmed == "]")
+        {
+            return true;
+        }
+
+        var lower = trimmed.ToLowerInvariant();
+        return lower == "json" || lower == "```json" || lower == "```";
+    }
+
     private static string SanitizeModelText(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -934,6 +1031,9 @@ public class AIAgentController : MonoBehaviour
 
         var cleaned = text.Trim();
         cleaned = cleaned.Replace("```json", string.Empty).Replace("```", string.Empty).Trim();
+        cleaned = cleaned.Replace("\\\"", "\"");
+        cleaned = cleaned.Replace("\u201c", "\"").Replace("\u201d", "\"");
+        cleaned = cleaned.Replace("\u2018", "'").Replace("\u2019", "'");
 
         if (cleaned.StartsWith("json", StringComparison.OrdinalIgnoreCase))
         {
@@ -950,7 +1050,7 @@ public class AIAgentController : MonoBehaviour
             return string.Empty;
         }
 
-        var name = raw.Trim().Trim('"', '\'', '`', ' ', '.', ',', ';');
+        var name = raw.Trim().Trim('"', '\'', '`', ' ', '.', ',', ';', '{', '}', '[', ']');
         var colon = name.IndexOf(':');
         if (colon > 0 && colon < 14 && colon < name.Length - 1)
         {
@@ -975,12 +1075,12 @@ public class AIAgentController : MonoBehaviour
         }
 
         var lower = name.ToLowerInvariant();
-        if (lower == "json" || lower == "```json" || lower == "```")
+        if (lower == "json" || lower == "```json" || lower == "```" || lower.Contains("objectname") || lower == "object" || lower == "name")
         {
             return string.Empty;
         }
 
-        if (lower.Contains("smartphone") || lower.Contains("mobile") || lower == "phone")
+        if (lower.Contains("smartphone") || lower.Contains("mobile") || lower.Contains("telephone") || lower == "phone")
         {
             return "phone";
         }
@@ -1255,10 +1355,19 @@ public class AIAgentController : MonoBehaviour
             return;
         }
 
-        hasDetectedObject = true;
-        lastDetectedObject = detectedInfo;
+        var normalizedName = NormalizeDetectedObjectName(detectedInfo.ObjectName);
+        if (string.IsNullOrWhiteSpace(normalizedName))
+        {
+            return;
+        }
 
-        var objectName = detectedInfo.ObjectName;
+        hasDetectedObject = true;
+        lastDetectedObject = new DetectedObjectInfo(
+            normalizedName,
+            NormalizeConfidence(detectedInfo.Confidence),
+            SafeOrDefault(detectedInfo.Description, "Detected object from camera frame."));
+
+        var objectName = lastDetectedObject.ObjectName;
         if (objectName.Length > 18)
         {
             objectName = objectName.Substring(0, 18) + "...";
