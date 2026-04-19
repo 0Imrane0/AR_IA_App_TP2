@@ -711,7 +711,7 @@ MonoBehaviour:
   headerBadgeText: {fileID: 0}
   exportReportButton: {fileID: 0}
   autoCreateHudIfMissing: 1
-  presentationMinimalMode: 1
+  presentationMinimalMode: 0
   idleColor: {r: 1, g: 1, b: 1, a: 1}
   analysisColor: {r: 1, g: 0.86, b: 0.25, a: 1}
   warningColor: {r: 1, g: 0.34, b: 0.25, a: 1}
@@ -719,7 +719,7 @@ MonoBehaviour:
   useCaseTitle: AR AI Maintenance Assistant
   trackedAssetName: Hydraulic Pump P-204
   retriggerCooldown: 1.5
-  enableTapToCycle: 0
+  enableTapToCycle: 1
   uiLanguage: 1
   includeScreenshotInExport: 1
   screenshotSuperSize: 1
@@ -728,8 +728,8 @@ MonoBehaviour:
   includeDetectedObjectInSummary: 1
   useCameraFrameForObjectDetection: 1
   useGeminiApi: 1
-  geminiApiKey: AIzaSyAPkkvXWSgvzJX6V0d0fhhb2PUYThbELjM
-  preferEnvironmentApiKey: 0
+  geminiApiKey: 
+  preferEnvironmentApiKey: 1
   requireGoogleApiKeyFormat: 1
   environmentVariableName: GEMINI_API_KEY
   geminiApiVersion: v1
@@ -740,7 +740,7 @@ MonoBehaviour:
   geminiTemperature: 0.2
   geminiMaxOutputTokens: 220
   geminiTimeoutSeconds: 18
-  create3DKpiCards: 0
+  create3DKpiCards: 1
   kpiRadius: 0.11
   kpiCardScale: 0.0002
   detachKpiFromTarget: 1

@@ -66,7 +66,7 @@ public class AIAgentController : MonoBehaviour
     [Header("Gemini AI (Optional)")]
     public bool useGeminiApi = true;
     [TextArea(2, 6)]
-    public string geminiApiKey = "AIzaSyAPkkvXWSgvzJX6V0d0fhhb2PUYThbELjM";
+    public string geminiApiKey = "";
     public bool preferEnvironmentApiKey = true;
     public bool requireGoogleApiKeyFormat = true;
     public string environmentVariableName = "GEMINI_API_KEY";

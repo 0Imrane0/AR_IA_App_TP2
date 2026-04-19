@@ -47,22 +47,23 @@ Main use case implemented:
 ## 4) Gemini API Setup
 You can provide your Gemini API key in 2 ways:
 
-### Option A - Inspector (recommended for quick test)
+### Option A - Inspector (quick test only)
 1. Open SampleScene
 2. Select ImageTarget
 3. In AIAgentController component:
    - useGeminiApi = true
   - geminiApiKey = YOUR_KEY
 
-### Option B - Environment Variable
+### Option B - Environment Variable (recommended)
 1. Set environment variable GEMINI_API_KEY on your machine
 2. In AIAgentController keep:
    - preferEnvironmentApiKey = true
 
 Notes:
-- This project already supports immediate testing with key configured in component defaults.
+- This project is configured with an empty default API key to avoid committing secrets.
 - If no key is found, app automatically falls back to local simulation.
-- Model can be changed in geminiModel (default: gemini-2.0-flash).
+- Model can be changed in geminiModel (default: gemini-2.5-flash).
+- Before publishing, verify no API key is stored in scene or script files.
 
 ## 5) How to Run
 1. Open Unity project
@@ -168,3 +169,16 @@ You still need to do manually:
 - Add language toggle (FR/EN/AR)
 - Add remote logging dashboard
 - Add screenshot attachment in exported report
+
+## 11) Publish to GitHub (Safe Checklist)
+1. Make sure your key is **not** committed:
+  - `geminiApiKey` should be empty in scene/script files
+  - prefer environment variable `GEMINI_API_KEY`
+2. Check git status:
+  - `git status`
+3. Stage and commit:
+  - `git add Assets/AIAgentController.cs Assets/Scenes/SampleScene.unity README.md`
+  - `git commit -m "Secure Gemini config, enable tap interaction defaults, update publish docs"`
+4. Push to GitHub:
+  - `git push origin main`
+5. If a key was ever pushed previously, rotate it immediately in Google AI Studio.
