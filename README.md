@@ -4,6 +4,45 @@
 This project is a modern AR + AI mini app built with Unity + Vuforia.
 The app detects an image target, launches an AI analysis pipeline, and displays dynamic recommendations in AR.
 
+## Collaborators
+- Mohamed Smaoui
+- Imran Hajji
+
+## Architecture Diagram
+```mermaid
+flowchart TD
+  U[User]
+  CAM[Device Camera]
+  VUF[Vuforia Engine\nImage Target Detection]
+  EVT[Target Events\nOnTargetFound / OnTargetLost]
+  CTRL[AIAgentController]
+  PIPE[AI Pipeline\nSignals -> Analysis -> Decision]
+  API[Gemini REST API\nOptional Live AI]
+  FALLBACK[Local Simulation\nFallback Engine]
+  PARSER[Response Parser\nDiagnosticReport]
+  UI[Dynamic AR UI\nSummary / Action / History]
+  KPI[3D KPI Cards\nTemp / Vibration / Pressure]
+  EXPORT[Export Report + Screenshot]
+  DIAG[CameraStartupDiagnostics]
+
+  U -->|scan target| CAM
+  CAM --> VUF
+  VUF --> EVT
+  EVT -->|found| CTRL
+  EVT -->|lost| CTRL
+  CTRL --> PIPE
+  PIPE -->|if API key + network| API
+  PIPE -->|else| FALLBACK
+  API --> PARSER
+  FALLBACK --> PARSER
+  PARSER --> UI
+  PARSER --> KPI
+  U -->|tap/click| UI
+  U -->|Export Report| EXPORT
+  PARSER --> EXPORT
+  CAM --> DIAG
+```
+
 Main use case implemented:
 - AR AI Maintenance Assistant
 - Target example: Hydraulic Pump P-204

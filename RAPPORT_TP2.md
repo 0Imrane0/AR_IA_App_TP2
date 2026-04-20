@@ -6,6 +6,10 @@ Ce TP demande une mini application AR qui detecte un element reel, declenche une
 Technologie choisie:
 - Vuforia (Image Target)
 
+## 1.1 Collaborateurs
+- Mohamed Smaoui
+- Imran Hajji
+
 ## 2. Objectif Realise
 Application realisee: Modern AR AI Maintenance Assistant
 
@@ -33,6 +37,42 @@ Scenario:
 - Affichage dynamique: OK
 
 ## 4. Architecture Technique
+Diagramme global:
+
+```mermaid
+flowchart TD
+    U[Utilisateur]
+    CAM[Camera appareil]
+    VUF[Vuforia\nDetection Image Target]
+    EVT[Evenements Target\nOnTargetFound / OnTargetLost]
+    CTRL[AIAgentController]
+    PIPE[Pipeline IA\nSignaux -> Analyse -> Decision]
+    API[Gemini REST API\nIA live optionnelle]
+    FALLBACK[Simulation locale\nMode secours]
+    PARSER[Parsing reponse\nDiagnosticReport]
+    UI[UI dynamique AR\nSummary / Action / History]
+    KPI[Cartes KPI 3D\nTemperature / Vibration / Pression]
+    EXPORT[Export rapport + screenshot]
+    DIAG[CameraStartupDiagnostics]
+
+    U -->|scan cible| CAM
+    CAM --> VUF
+    VUF --> EVT
+    EVT -->|target trouvee| CTRL
+    EVT -->|target perdue| CTRL
+    CTRL --> PIPE
+    PIPE -->|si cle API + reseau| API
+    PIPE -->|sinon| FALLBACK
+    API --> PARSER
+    FALLBACK --> PARSER
+    PARSER --> UI
+    PARSER --> KPI
+    U -->|tap/click| UI
+    U -->|Export Report| EXPORT
+    PARSER --> EXPORT
+    CAM --> DIAG
+```
+
 Scripts principaux:
 - Assets/AIAgentController.cs
   - Pipeline d'analyse en 3 etapes
